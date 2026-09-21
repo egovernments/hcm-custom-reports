@@ -241,7 +241,10 @@ catalog</h3>
 </tr>
 <tr class="odd">
 <td><code>filename</code></td>
-<td>workbook name(s) the UI should look for and offer as a download</td>
+<td><strong>Not read by the engine today</strong> — declaration only.
+After each report the UI scans <code>_engine/FINAL_REPORTS</code> for
+any <code>*.xlsx</code> and moves what it finds, so the real name is
+whatever your script writes. Still worth filling in accurately.</td>
 </tr>
 <tr class="even">
 <td><code>cycle_index</code></td>

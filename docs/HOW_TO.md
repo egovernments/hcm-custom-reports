@@ -144,7 +144,7 @@ are what make one script work for ten states.
 |---|---|
 | `input` | folder holding the script, relative to `_engine` |
 | `scripts` | script(s) to run, in order |
-| `filename` | workbook name(s) the UI should look for and offer as a download |
+| `filename` | **Not read by the engine today** — declaration only. After each report the UI scans `_engine/FINAL_REPORTS` for any `*.xlsx` and moves what it finds, so the real name is whatever your script writes. Still worth filling in accurately. |
 | `cycle_index` | *optional* — which ES index to discover cycles in. Defaults to `project-task`. Set it when your report reads a different index (Stock reads `stock-index`) |
 | `cycle_filter` | *optional* — see §4 |
 
