@@ -1,0 +1,49 @@
+{
+  "Child Treated Report": {
+    "input": "/REPORTS_SCRIPTS/children_treated/",
+    "scripts": [
+      "child_treatment_report.py"
+    ],
+    "filename": [
+      "CHILDREN_TREATED.xlsx"
+    ]
+  },
+  "RI Report": {
+    "input": "/REPORTS_SCRIPTS/ri_report/",
+    "scripts": [
+      "ri_report.py"
+    ],
+    "filename": [
+      "RI_Report.xlsx"
+    ],
+    "cycle_filter": {
+      "term": {
+        "Data.additionalDetails.flow.keyword": "riDone"
+      }
+    }
+  },
+  "ORS/ORZ Report": {
+    "input": "/REPORTS_SCRIPTS/ors_report/",
+    "scripts": [
+      "ors_report.py"
+    ],
+    "filename": [
+      "ORSZ_TREATED.xlsx"
+    ],
+    "cycle_filter": {
+      "term": {
+        "Data.productName.keyword": "ORS-Zinc"
+      }
+    }
+  },
+  "Stock Report": {
+    "input": "/REPORTS_SCRIPTS/stock_report/",
+    "scripts": [
+      "stock_report.py"
+    ],
+    "filename": [
+      "STOCK_REPORT.xlsx"
+    ],
+    "cycle_index": "stock"
+  }
+}

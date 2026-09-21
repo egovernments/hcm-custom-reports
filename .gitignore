@@ -1,0 +1,22 @@
+# --- secrets -----------------------------------------------------------------
+.env
+.env.*
+!.env.example
+
+# --- generated report output: never commit campaign data ---------------------
+FINAL_REPORTS/
+_engine/FINAL_REPORTS/
+*.xlsx
+*.xls
+*.csv
+
+# --- runtime state rewritten on every run ------------------------------------
+_engine/ui_state.json
+_engine/reports_date_config.json
+
+# --- python / jupyter noise --------------------------------------------------
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.DS_Store
+*.zip

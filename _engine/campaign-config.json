@@ -1,0 +1,72 @@
+{
+  "campaign_type": "SMC",
+  "common_reports": [
+    "Child Treated Report",
+    "Stock Report"
+  ],
+  "states": {
+    "oyo": {
+      "name": "Oyo",
+      "tenant_id": "oy",
+      "campaign_number": "CMP-2026-06-03-000308"
+    },
+    "kogi": {
+      "name": "Kogi",
+      "tenant_id": "ko",
+      "campaign_number": "CMP-2026-06-03-000315",
+      "extra_reports": [
+        "RI Report"
+      ]
+    },
+    "nasarawa": {
+      "name": "Nasarawa",
+      "tenant_id": "na",
+      "campaign_number": "CMP-2026-06-03-000316"
+    },
+    "fct_abuja": {
+      "name": "FCT Abuja",
+      "tenant_id": "ab",
+      "campaign_number": "CMP-2026-06-09-000341"
+    },
+    "bauchi": {
+      "name": "Bauchi",
+      "tenant_id": "ba",
+      "campaign_number": "CMP-2026-06-22-000401"
+    },
+    "borno": {
+      "name": "Borno",
+      "tenant_id": "bo",
+      "campaign_number": "CMP-2026-07-07-000434"
+    },
+    "kebbi": {
+      "name": "Kebbi",
+      "tenant_id": "ke",
+      "campaign_number": "CMP-2026-06-29-000421",
+      "extra_reports": [
+        "ORS/ORZ Report"
+      ]
+    },
+    "plateau": {
+      "name": "Plateau",
+      "tenant_id": "pl",
+      "campaign_number": "CMP-2026-06-10-000350",
+      "extra_reports": [
+        "RI Report"
+      ]
+    },
+    "sokoto": {
+      "name": "Sokoto",
+      "tenant_id": "so",
+      "campaign_number": "CMP-2026-07-22-000449",
+      "extra_reports": [
+        "ORS/ORZ Report",
+        "RI Report"
+      ]
+    },
+    "zamfara": {
+      "name": "Zamfara",
+      "tenant_id": "zf",
+      "campaign_number": "CMP-2026-07-21-000446"
+    }
+  }
+}
