@@ -236,9 +236,12 @@ def get_successful_administrations():
 
                 child_name_from_details = additional_details.get("childName", "").strip() if additional_details else ""
                 head_name_from_details = additional_details.get("headName", "").strip() if additional_details else ""
+                beneficiary_id_from_details = additional_details.get("beneficiaryId", "") if additional_details else ""
+                beneficiary_id_from_details = str(beneficiary_id_from_details).strip() if beneficiary_id_from_details else ""
 
                 record = {
                     "Individual ID": indv_id,
+                    "Beneficiary Id": beneficiary_id_from_details,
                     "Country": doc["boundaryHierarchy"].get("country", ""),
                     "State": doc["boundaryHierarchy"].get("state", ""),
                     "LGA": doc["boundaryHierarchy"].get("lga", ""),
@@ -478,6 +481,8 @@ def get_hf_referral_data():
                 name_of_referral = extract_from_hf_referral_fields(hf_referral, "nameOfReferral")
                 age_in_months = extract_from_hf_referral_fields(hf_referral, "ageInMonths")
                 gender = extract_from_hf_referral_fields(hf_referral, "gender")
+                beneficiary_id_hf = hf_referral.get("beneficiaryId", "")
+                beneficiary_id_hf = str(beneficiary_id_hf).strip() if beneficiary_id_hf else ""
                 
                 # Track status counts
                 status = "Children Referred"
@@ -485,6 +490,7 @@ def get_hf_referral_data():
 
                 record = {
                     "Individual ID": referral_code,
+                    "Beneficiary Id": beneficiary_id_hf,
                     "Country": boundary.get("country", ""),
                     "State": boundary.get("state", ""),
                     "LGA": boundary.get("lga", ""),
