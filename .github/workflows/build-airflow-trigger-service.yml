@@ -2,16 +2,9 @@ name: Build Airflow Trigger Service
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - master
-      - master-airflow
-    paths:
-      - 'airflow-trigger-service/**'
-      - '.github/workflows/build-airflow-trigger-service.yml'
 
 env:
-  DOCKER_USERNAME: ${{ vars.DOCKER_USERNAME }}
+  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
   DOCKER_PASSWORD: ${{ secrets.DOCKER_ACCESS_TOKEN }}
   IMAGE_NAME: airflow-trigger-service
   SERVICE_DIR: airflow-trigger-service
