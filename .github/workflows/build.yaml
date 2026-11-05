@@ -1,0 +1,170 @@
+name: Build Pipeline
+run-name: Build ${{ inputs.pipeline_name }} (${{ github.ref_name }})
+
+# Manual only: Actions -> Build Pipeline -> Run workflow.
+# Image details for each pipeline come from build/build-config.yml.
+on:
+  workflow_dispatch:
+    inputs:
+      pipeline_name:
+        description: "Pipeline to build (must exist in build/build-config.yml)"
+        required: true
+        type: choice
+        options:
+          - airflow-trigger-service
+          - airflow-custom-reports
+
+env:
+  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+  DOCKER_PASSWORD: ${{ secrets.DOCKER_ACCESS_TOKEN }}
+  REGISTRY_ORG: egovio
+  CONFIG_FILE: build/build-config.yml
+
+jobs:
+  resolve-config:
+    name: Resolve ${{ inputs.pipeline_name }} config
+    runs-on: ubuntu-latest
+    outputs:
+      images: ${{ steps.resolve.outputs.images }}
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Resolve images from build-config.yml
+        id: resolve
+        env:
+          PIPELINE: ${{ inputs.pipeline_name }}
+        run: |
+          set -euo pipefail
+
+          MATCHES=$(yq '[.config[] | select(.name == strenv(PIPELINE))] | length' "$CONFIG_FILE")
+          if [ "$MATCHES" -ne 1 ]; then
+            echo "::error::Expected exactly 1 config entry named '$PIPELINE' in $CONFIG_FILE, found $MATCHES"
+            exit 1
+          fi
+
+          # Normalise each build entry; dockerfile defaults to <work-dir>/Dockerfile
+          IMAGES=$(yq -o=json -I=0 '
+            [.config[] | select(.name == strenv(PIPELINE)) | .build[] | {
+              "workDir": .["work-dir"],
+              "imageName": .["image-name"],
+              "dockerfile": (.dockerfile // (.["work-dir"] + "/Dockerfile"))
+            }]' "$CONFIG_FILE")
+
+          # Fail early if a path in the config is wrong
+          echo "$IMAGES" | jq -c '.[]' | while read -r img; do
+            WORK_DIR=$(echo "$img" | jq -r .workDir)
+            IMAGE_NAME=$(echo "$img" | jq -r .imageName)
+            DOCKERFILE=$(echo "$img" | jq -r .dockerfile)
+            [ -n "$IMAGE_NAME" ] && [ "$IMAGE_NAME" != "null" ] || { echo "::error::image-name missing"; exit 1; }
+            [ -d "$WORK_DIR" ]   || { echo "::error::work-dir '$WORK_DIR' not found"; exit 1; }
+            [ -f "$DOCKERFILE" ] || { echo "::error::dockerfile '$DOCKERFILE' not found"; exit 1; }
+          done
+
+          echo "images=$IMAGES" >> "$GITHUB_OUTPUT"
+          echo "### Pipeline: $PIPELINE" >> "$GITHUB_STEP_SUMMARY"
+          echo "$IMAGES" | jq -r '.[] | "- `\(.imageName)` — context `\(.workDir)`, dockerfile `\(.dockerfile)`"' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Generate Tag
+        id: tag
+        run: |
+          BRANCH="${GITHUB_REF_NAME//\//-}"
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          TAG="${BRANCH}-${COMMIT_HASH}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Generated tag: $TAG"
+
+  build-and-push:
+    name: Build ${{ matrix.image.imageName }} (${{ matrix.target.arch }})
+    needs: resolve-config
+    strategy:
+      fail-fast: true
+      matrix:
+        image: ${{ fromJSON(needs.resolve-config.outputs.images) }}
+        target:
+          - arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.target.runner }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker Layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-${{ matrix.target.arch }}-buildx-${{ matrix.image.imageName }}-${{ github.ref_name }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.target.arch }}-buildx-${{ matrix.image.imageName }}-
+
+      - name: Docker Login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ env.DOCKER_PASSWORD }}
+
+      - name: Build and Push Docker Image
+        env:
+          IMAGE_REF: ${{ env.REGISTRY_ORG }}/${{ matrix.image.imageName }}:${{ needs.resolve-config.outputs.tag }}-${{ matrix.target.arch }}
+          DOCKERFILE: ${{ matrix.image.dockerfile }}
+          WORK_DIR: ${{ matrix.image.workDir }}
+          PLATFORM: ${{ matrix.target.platform }}
+        run: |
+          docker buildx build \
+            --platform "$PLATFORM" \
+            --file "$DOCKERFILE" \
+            --tag "$IMAGE_REF" \
+            --provenance=false \
+            --sbom=false \
+            --cache-from=type=local,src=/tmp/.buildx-cache \
+            --cache-to=type=local,dest=/tmp/.buildx-cache,mode=max \
+            --push \
+            "$WORK_DIR"
+          docker buildx imagetools inspect "$IMAGE_REF"
+
+  create-manifest:
+    name: Manifest ${{ matrix.image.imageName }}
+    needs: [resolve-config, build-and-push]
+    strategy:
+      matrix:
+        image: ${{ fromJSON(needs.resolve-config.outputs.images) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Docker Login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ env.DOCKER_PASSWORD }}
+
+      - name: Create and Push Manifest
+        env:
+          IMAGE: ${{ env.REGISTRY_ORG }}/${{ matrix.image.imageName }}
+          TAG: ${{ needs.resolve-config.outputs.tag }}
+        run: |
+          docker manifest create "$IMAGE:$TAG" \
+            --amend "$IMAGE:$TAG-amd64" \
+            --amend "$IMAGE:$TAG-arm64"
+          docker manifest push "$IMAGE:$TAG"
+
+          if [ "$GITHUB_REF" = "refs/heads/master" ]; then
+            docker manifest create "$IMAGE:latest" \
+              --amend "$IMAGE:$TAG-amd64" \
+              --amend "$IMAGE:$TAG-arm64"
+            docker manifest push "$IMAGE:latest"
+          fi
+
+          {
+            echo "### ✅ $IMAGE:$TAG"
+            echo "Platforms: linux/amd64, linux/arm64"
+            echo '```'
+            echo "docker pull $IMAGE:$TAG"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

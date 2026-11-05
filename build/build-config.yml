@@ -1,0 +1,23 @@
+# Build configuration for .github/workflows/build.yaml
+#
+# Each entry under `config` is one buildable pipeline. Its `name` must match an
+# option in the `pipeline_name` dropdown of build.yaml.
+#
+# config:
+#   - name: <pipeline name shown in the GitHub Actions dropdown>
+#     build:                      # one or more images built by this pipeline
+#       - work-dir: <docker build context, relative to repo root>
+#         image-name: <image name, pushed as egovio/<image-name>:<branch>-<sha>>
+#         dockerfile: <optional; defaults to <work-dir>/Dockerfile>
+
+config:
+  - name: airflow-trigger-service
+    build:
+      - work-dir: airflow-trigger-service
+        image-name: airflow-trigger-service
+
+  # All reports in one image (set its tag as the REPORT_IMAGE Airflow variable)
+  - name: airflow-custom-reports
+    build:
+      - work-dir: airflow-custom-reports
+        image-name: airflow-custom-reports
